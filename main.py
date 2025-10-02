@@ -15,10 +15,17 @@ researcher = Agent(
   allow_delegation=False,
   llm=ollama_llm_llama3
 )
+orchestrator = Agent(
+  role=\'Task Orchestrator\',
+  goal=\'Orchestrate research and writing tasks to produce a comprehensive article.\',
+  backstory=\'You are a seasoned project manager, expert in delegating tasks and ensuring timely, high-quality output from a team of specialized agents.\',
+  verbose=True,
+  allow_delegation=True,
+  llm=ollama_llm_llama3 # Using Mistral for orchestration
+)
 
 writer = Agent(
-  role='Writer',
-  goal='Write a compelling and engaging article based on the research provided.',
+  role=\'Writer\',  goal='Write a compelling and engaging article based on the research provided.',
   backstory='You are a professional writer, known for your clear and concise writing style.',
   verbose=True,
   allow_delegation=False,
@@ -26,24 +33,35 @@ writer = Agent(
 )
 
 # Define your tasks
-task1 = Task(
-  description='Research the topic of "AI in 2025"',
-  expected_output='A summary of the latest trends and advancements in AI.',
+research_task = Task(
+  description=\'Research the topic of "AI in 2025"\',
+  expected_output=\'A summary of the latest trends and advancements in AI.\',
   agent=researcher
 )
 
-task2 = Task(
-  description='Write an article based on the research from the researcher.',
-  expected_output='A 500-word article on the topic of "AI in 2025".',
+writing_task = Task(
+  description=\'Write an article based on the research from the researcher.\',
+  expected_output=\'A 500-word article on the topic of "AI in 2025".\',
   agent=writer
 )
 
+orchestrate_task = Task(
+  description=\'Oversee the research and writing process for an article on "AI in 2025".\',
+  expected_output=\'A final, comprehensive article on "AI in 2025" based on the delegated tasks.\',
+  agent=orchestrator,
+  context=[research_task, writing_task]
+)
+
+
+
+
 # Create the crew
 crew = Crew(
-  agents=[researcher, writer],
-  tasks=[task1, task2],
-  process=Process.SEQUENTIAL
+  agents=[researcher, writer, orchestrator],
+  tasks=[orchestrate_task],
+  process=Process.sequential # The orchestrator will manage the flow
 )
+
 
 # Get the crew to work
 result = crew.kickoff()
