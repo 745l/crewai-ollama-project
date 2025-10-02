@@ -15,14 +15,24 @@ researcher = Agent(
   allow_delegation=False,
   llm=ollama_llm_llama3
 )
-orchestrator = Agent(
-  role=\'Task Orchestrator\',
+mirko = Agent(
+  role=\'Mirko - Task Orchestrator\',
   goal=\'Orchestrate research and writing tasks to produce a comprehensive article.\',
   backstory=\'You are a seasoned project manager, expert in delegating tasks and ensuring timely, high-quality output from a team of specialized agents.\',
   verbose=True,
   allow_delegation=True,
-  llm=ollama_llm_llama3 # Using Mistral for orchestration
+ llm=ollama_llm_mistral # Using Mistral for orchestration
 )
+
+slavko = Agent(
+  role=\'Slavko - Task Assistant\',
+  goal=\'Evaluate task feasibility, provide insights, and communicate with the orchestrator.\',
+  backstory=\'You are a diligent assistant, skilled in analyzing tasks, assessing their viability, and reporting back to the orchestrator.\',
+  verbose=True,
+  allow_delegation=False,
+  llm=ollama_llm_llama3 # Using Llama3 for assistant tasks
+)
+
 
 writer = Agent(
   role=\'Writer\',  goal='Write a compelling and engaging article based on the research provided.',
@@ -45,22 +55,30 @@ writing_task = Task(
   agent=writer
 )
 
-orchestrate_task = Task(
-  description=\'Oversee the research and writing process for an article on "AI in 2025".\',
-  expected_output=\'A final, comprehensive article on "AI in 2025" based on the delegated tasks.\',
-  agent=orchestrator,
-  context=[research_task, writing_task]
+evaluate_task = Task(
+  description=\'Evaluate the feasibility and potential challenges of creating an article on "AI in 2025". Communicate your findings to Mirko.\',
+  expected_output=\'A detailed assessment of the task\'s feasibility, including potential risks and opportunities.\',
+  agent=slavko
 )
+
+orchestrate_task = Task(
+  description=\'Oversee the research and writing process for an article on "AI in 2025", taking into account Slavko\'s evaluation.\',
+  expected_output=\'A final, comprehensive article on "AI in 2025" based on the delegated tasks and Slavko\'s insights.\',
+  agent=mirko,
+  context=[evaluate_task, research_task, writing_task]
+)
+
 
 
 
 
 # Create the crew
 crew = Crew(
-  agents=[researcher, writer, orchestrator],
+  agents=[researcher, writer, mirko, slavko],
   tasks=[orchestrate_task],
-  process=Process.sequential # The orchestrator will manage the flow
+  process=Process.sequential # Mirko (orchestrator) will manage the flow
 )
+
 
 
 # Get the crew to work
